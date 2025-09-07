@@ -1,0 +1,5 @@
+export const ORDER_STATUS = {
+  DRAFT: "DRAFT",
+  COMPLETED: "COMPLETED",
+  REJECTED: "REJECTED"
+};

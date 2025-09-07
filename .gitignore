@@ -1,0 +1,12 @@
+# Dependencies
+ecom-backend/node_modules
+
+# IDE / OS files
+.DS_Store
+.vscode/
+
+# Build folder (if you have one)
+/build
+
+# Environment Variables
+.env

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Simple modal styles */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 48rem; /* Equivalent to md breakpoint */
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+    </style>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const Navbar = () => (
+            <nav className="bg-white shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-16">
+                        <div className="flex items-center">
+                            <a href="index.html" className="flex-shrink-0">
+                                <svg className="h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h6m-6 4h6m-6 4h6" />
+                                </svg>
+                            </a>
+                            <div className="ml-10 flex items-baseline space-x-4">
+                                <a href="inventory.html" className="text-gray-500 hover:bg-gray-200 px-3 py-2 rounded-md text-sm font-medium">
+                                    Inventory
+                                </a>
+                                <a href="orders.html" className="bg-blue-500 text-white px-3 py-2 rounded-md text-sm font-medium">
+                                    Orders
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        );
+        
+        const OrderStatusBadge = ({ status }) => {
+            const baseClasses = "px-2 py-1 text-xs font-semibold rounded-full";
+            let statusClasses = "";
+            switch (status) {
+                case 'COMPLETED': statusClasses = 'bg-green-200 text-green-800'; break;
+                case 'REJECTED': statusClasses = 'bg-red-200 text-red-800'; break;
+                case 'DRAFT': statusClasses = 'bg-gray-200 text-gray-800'; break;
+                default: statusClasses = 'bg-yellow-200 text-yellow-800';
+            }
+            return <span className={`${baseClasses} ${statusClasses}`}>{status}</span>;
+        };
+
+        const OrderList = ({ orders, onViewDetails }) => {
+             if (orders.length === 0) {
+                return <div className="text-center text-gray-500 py-10">No orders found for the selected user.</div>;
+            }
+            return (
+                 <div className="overflow-x-auto mt-6">
+                    <table className="min-w-full bg-white border rounded-lg">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                         <tbody className="divide-y divide-gray-200">
+                             {orders.map(order => (
+                                <tr key={order.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 truncate" style={{maxWidth: '150px'}} title={order.id}>{order.id}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate" style={{maxWidth: '150px'}} title={order.user_id}>{order.user_id}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">₹{order.total.toFixed(2)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        <OrderStatusBadge status={order.status} />
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button onClick={() => onViewDetails(order.id)} className="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-gray-100">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                             ))}
+                         </tbody>
+                    </table>
+                </div>
+            );
+        };
+        
+        const OrderDetailsModal = ({ order, onClose }) => {
+            if (!order) return null;
+            return (
+                <div className="modal-backdrop">
+                    <div className="modal-content">
+                        <div className="flex justify-between items-center mb-4 pb-4 border-b">
+                            <h2 className="text-2xl font-bold text-gray-800">Order Details</h2>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
+                        </div>
+                        <div className="space-y-2">
+                            <div><strong>Order ID:</strong> {order.order_id}</div>
+                            <div><strong>User ID:</strong> {order.user_id}</div>
+                            <div><strong>Date:</strong> {new Date(order.created_at).toLocaleString()}</div>
+                            <div><strong>Status:</strong> <OrderStatusBadge status={order.status} /></div>
+                            
+                            <h3 className="text-xl font-semibold pt-4 mt-4 border-t">Items</h3>
+                            <ul className="divide-y divide-gray-200">
+                                {order.items && order.items.map(item => (
+                                    <li key={item.order_item_id} className="py-3 flex justify-between items-center">
+                                        <div>
+                                            <p className="font-medium">{item.name || item.sku}</p>
+                                            <p className="text-sm text-gray-500">Product ID: {item.product_id}</p>
+                                        </div>
+                                        <div className="text-right">
+                                             <p>Qty: {item.quantity}</p>
+                                             <p className="text-sm text-gray-600">₹{(item.price_at_time * item.quantity).toFixed(2)}</p>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                            
+                            {/* Conditionally render totals to prevent errors if data is missing */}
+                            {typeof order.total !== 'undefined' && typeof order.tax !== 'undefined' && typeof order.fees !== 'undefined' && typeof order.finalAmount !== 'undefined' && (
+                                <div className="pt-4 mt-4 border-t space-y-2 text-right">
+                                    <p><strong>Subtotal:</strong> ₹{order.total.toFixed(2)}</p>
+                                    <p><strong>Tax ({order.tax}%):</strong> ₹{(order.total * (order.tax / 100)).toFixed(2)}</p>
+                                    <p><strong>Fees:</strong> ₹{order.fees.toFixed(2)}</p>
+                                    <p className="text-xl font-bold"><strong>Final Amount:</strong> ₹{order.finalAmount.toFixed(2)}</p>
+                                </div>
+                            )}
+                        </div>
+                         <div className="flex justify-end mt-6">
+                            <button onClick={onClose} className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">Close</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const MessageModal = ({ message, type, onClose }) => {
+            if (!message) return null;
+            const isError = type === 'error';
+            const title = isError ? 'Error' : 'Success';
+            const titleColor = isError ? 'text-red-600' : 'text-green-600';
+            const buttonColor = 'bg-blue-600 hover:bg-blue-700';
+            return (
+                <div className="modal-backdrop">
+                    <div className="modal-content max-w-sm text-center">
+                         <h3 className={`text-xl font-bold ${titleColor} mb-4`}>{title}</h3>
+                         <p className="py-2 text-gray-700">{message}</p>
+                         <div className="flex justify-center mt-6">
+                             <button onClick={onClose} className={`text-white px-6 py-2 rounded-md ${buttonColor}`}>OK</button>
+                         </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const AddUserModal = ({ onClose, onUserAdded, setMessage }) => {
+            const [name, setName] = useState('');
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+
+            const handleSaveUser = async (e) => {
+                e.preventDefault();
+                if (!name.trim() || !email.trim() || !password.trim()) {
+                    setMessage({ text: 'All fields are required.', type: 'error' });
+                    return;
+                }
+
+                try {
+                    const response = await fetch('http://localhost:5000/api/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email, password })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Failed to create user');
+                    }
+                    
+                    onUserAdded(data);
+                } catch (err) {
+                    setMessage({ text: `Error: ${err.message}`, type: 'error' });
+                }
+            };
+
+            return (
+                <div className="modal-backdrop">
+                    <div className="modal-content max-w-md">
+                         <div className="flex justify-between items-center mb-4 pb-4 border-b">
+                            <h2 className="text-2xl font-bold text-gray-800">Add New User</h2>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
+                        </div>
+                        <form onSubmit={handleSaveUser} className="space-y-4">
+                            <div>
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+                                <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
+                            </div>
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
+                                <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
+                            </div>
+                             <div>
+                                <label htmlFor="password" aclassName="block text-sm font-medium text-gray-700">Password</label>
+                                <input type="password" id="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
+                            </div>
+                            <div className="flex justify-end space-x-3 pt-4">
+                                <button type="button" onClick={onClose} className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">Cancel</button>
+                                <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Save User</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const CreateOrderForm = ({ users, onCancel, onOrderCreated, setMessage }) => {
+            const [products, setProducts] = useState([]);
+            const [orderItems, setOrderItems] = useState([]);
+            const [userId, setUserId] = useState(users[0]?._id || '');
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                const fetchProducts = async () => {
+                    try {
+                        const response = await fetch('http://localhost:5000/api/products');
+                        if (!response.ok) throw new Error('Failed to fetch products');
+                        const data = await response.json();
+                        setProducts(data);
+                    } catch (err) {
+                        setError(err.message);
+                    }
+                };
+                fetchProducts();
+            }, []);
+
+            const handleAddItem = (product) => {
+                const quantityInput = document.getElementById(`qty-${product._id}`);
+                const requestedQuantity = parseInt(quantityInput.value, 10);
+                if (isNaN(requestedQuantity) || requestedQuantity <= 0) {
+                    setMessage({ text: 'Please enter a valid quantity.', type: 'error' });
+                    return;
+                }
+
+                const existingItemIndex = orderItems.findIndex(item => item._id === product._id);
+                if(existingItemIndex > -1) {
+                    const updatedItems = [...orderItems];
+                    updatedItems[existingItemIndex].requestedQuantity += requestedQuantity;
+                    setOrderItems(updatedItems);
+                } else {
+                    setOrderItems([...orderItems, { 
+                        _id: product._id, 
+                        name: product.name, 
+                        requestedQuantity, 
+                        price: product.price 
+                    }]);
+                }
+                quantityInput.value = '1';
+            };
+            
+            const handleRemoveItem = (productId) => {
+                setOrderItems(orderItems.filter(item => item._id !== productId));
+            };
+
+            const calculateTotal = () => {
+                return orderItems.reduce((total, item) => total + (item.price * item.requestedQuantity), 0);
+            };
+
+            const handleCreateOrder = async (e) => {
+                e.preventDefault();
+                if (!userId) {
+                    setMessage({ text: 'Please select a user.', type: 'error' });
+                    return;
+                }
+                if (orderItems.length === 0) {
+                    setMessage({ text: 'Please add at least one item to the order.', type: 'error' });
+                    return;
+                }
+
+                const payload = {
+                    user_id: userId,
+                    items: orderItems.map(({ _id, requestedQuantity }) => ({ _id, requestedQuantity: String(requestedQuantity) }))
+                };
+
+                try {
+                    const response = await fetch('http://localhost:5000/api/orders', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Failed to create order');
+                    }
+                    setMessage({ text: 'Order created successfully!', type: 'success' });
+                    onOrderCreated(data.order);
+                } catch (err) {
+                    setMessage({ text: `Error: ${err.message}`, type: 'error' });
+                }
+            };
+
+            return (
+                <div className="mt-8 p-6 bg-gray-50 rounded-lg border">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Create New Order</h2>
+                    <form onSubmit={handleCreateOrder}>
+                         <div className="mb-4">
+                            <label htmlFor="userId" className="block text-sm font-medium text-gray-700">Select User</label>
+                            <select 
+                                id="userId"
+                                value={userId}
+                                onChange={(e) => setUserId(e.target.value)}
+                                className="mt-1 block w-full max-w-sm px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                                required
+                            >
+                                <option value="" disabled>-- Select a user --</option>
+                                {users.map(user => (
+                                    <option key={user._id} value={user._id}>{user.name} ({user.email})</option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 className="text-lg font-semibold mb-2">Available Products</h3>
+                                <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                    {error && <p className="text-red-500">{error}</p>}
+                                    {products.map(product => (
+                                        <div key={product._id} className="p-3 bg-white rounded border flex justify-between items-center">
+                                            <div>
+                                                <p className="font-semibold">{product.name}</p>
+                                                <p className="text-sm text-gray-600">₹{product.price.toFixed(2)} (Stock: {product.stock_quantity})</p>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <input type="number" id={`qty-${product._id}`} min="1" defaultValue="1" className="w-16 border-gray-300 rounded-md shadow-sm text-sm" />
+                                                <button type="button" onClick={() => handleAddItem(product)} className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">+</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold mb-2">Current Order</h3>
+                                {orderItems.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {orderItems.map(item => (
+                                            <div key={item._id} className="p-3 bg-white rounded border flex justify-between items-center">
+                                                <span>{item.name} x {item.requestedQuantity}</span>
+                                                <div className="flex items-center space-x-2">
+                                                    <span>₹{(item.price * item.requestedQuantity).toFixed(2)}</span>
+                                                    <button type="button" onClick={() => handleRemoveItem(item._id)} className="text-red-500 hover:text-red-700 font-bold">X</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div className="pt-3 mt-3 border-t font-bold text-right">Total: ₹{calculateTotal().toFixed(2)}</div>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500">No items added yet.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-3 mt-6">
+                            <button type="button" onClick={onCancel} className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">Cancel</button>
+                            <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">Create Order</button>
+                        </div>
+                    </form>
+                </div>
+            );
+        };
+
+
+        const OrdersPage = () => {
+            const [allUsers, setAllUsers] = useState([]);
+            const [userIdSearch, setUserIdSearch] = useState('');
+            const [orders, setOrders] = useState([]);
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+            const [isAddingUser, setIsAddingUser] = useState(false);
+            const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
+            const [message, setMessage] = useState({ text: '', type: '' });
+
+            useEffect(() => {
+                const fetchAllUsers = async () => {
+                    try {
+                        const response = await fetch('http://localhost:5000/api/users');
+                        if (!response.ok) throw new Error('Could not fetch users');
+                        const data = await response.json();
+                        setAllUsers(data);
+                        if (data.length > 0 && !userIdSearch) {
+                            setUserIdSearch(data[0]._id);
+                        }
+                    } catch (err) {
+                        setMessage({ text: err.message, type: 'error' });
+                    }
+                };
+                fetchAllUsers();
+            }, []);
+
+            const fetchOrders = async (userId) => {
+                if (!userId) {
+                    setOrders([]);
+                    return;
+                }
+                setIsLoading(true);
+                setError(null);
+                try {
+                    const response = await fetch(`http://localhost:5000/api/users/${userId}/orders`);
+                    if (response.status === 404) {
+                        setOrders([]);
+                        return;
+                    }
+                    if (!response.ok) throw new Error(`Could not fetch orders for user`);
+                    const data = await response.json();
+                    setOrders(data);
+                } catch (err) {
+                    setError(err.message);
+                    setOrders([]);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            
+             const handleViewDetails = async (orderId) => {
+                try {
+                    const response = await fetch(`http://localhost:5000/api/orders/${orderId}`);
+                    if (!response.ok) throw new Error('Could not fetch order details');
+                    const data = await response.json();
+                    
+                    // If financial details are missing, reconstruct them
+                    if (typeof data.finalAmount === 'undefined') {
+                        const orderFromList = orders.find(o => o.id === orderId);
+                        if (orderFromList) {
+                            const total = orderFromList.total;
+                            const tax = 5; // Default tax from schema
+                            const fees = 1; // Default fees from schema
+                            
+                            data.total = total;
+                            data.tax = tax;
+                            data.fees = fees;
+                            data.finalAmount = total + (total * (tax / 100)) + fees;
+                        }
+                    }
+                    
+                    setSelectedOrderDetails(data);
+                } catch (err) {
+                    setMessage({ text: `Error: ${err.message}`, type: 'error' });
+                }
+            };
+
+            const handleSearch = (e) => {
+                e.preventDefault();
+                fetchOrders(userIdSearch);
+            };
+
+            const handleUserAdded = (newUser) => {
+                setAllUsers(prevUsers => [...prevUsers, newUser]);
+                setIsAddingUser(false);
+                setMessage({ text: 'User created successfully!', type: 'success' });
+            };
+
+            return (
+                <div className="p-8 bg-white rounded-lg shadow">
+                    <MessageModal message={message.text} type={message.type} onClose={() => setMessage({ text: '', type: ''})} />
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-800 mb-2">Order Management</h1>
+                            <p className="text-gray-600">Search for orders by User or create a new one.</p>
+                        </div>
+                        <div className="flex space-x-2">
+                             {!isCreatingOrder && (
+                                 <button onClick={() => setIsAddingUser(true)} className="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 whitespace-nowrap">
+                                    Add New User
+                                 </button>
+                            )}
+                             {!isCreatingOrder && (
+                                 <button onClick={() => setIsCreatingOrder(true)} className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 whitespace-nowrap">
+                                    Create New Order
+                                 </button>
+                            )}
+                        </div>
+                    </div>
+                    <div className="border-b my-6"></div>
+
+                    {isCreatingOrder ? (
+                        <CreateOrderForm 
+                            users={allUsers}
+                            setMessage={setMessage}
+                            onCancel={() => setIsCreatingOrder(false)}
+                            onOrderCreated={(newOrder) => {
+                                setIsCreatingOrder(false);
+                                if(userIdSearch) fetchOrders(userIdSearch);
+                                handleViewDetails(newOrder._id);
+                            }}
+                        />
+                    ) : (
+                        <>
+                             <form onSubmit={handleSearch} className="flex items-center space-x-3">
+                                <select 
+                                    value={userIdSearch}
+                                    onChange={(e) => setUserIdSearch(e.target.value)}
+                                    className="block w-full max-w-sm px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                >
+                                     <option value="" disabled>-- Select a user to search --</option>
+                                     {allUsers.map(user => (
+                                         <option key={user._id} value={user._id}>{user.name} ({user.email})</option>
+                                     ))}
+                                </select>
+                                <button 
+                                    type="submit"
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    Search
+                                </button>
+                            </form>
+                            
+                            {error && <div className="text-red-500 mt-4">{error}</div>}
+                            {isLoading ? (
+                                <div className="text-center text-gray-500 py-10">Loading orders...</div>
+                            ) : (
+                                <OrderList orders={orders} onViewDetails={handleViewDetails} />
+                            )}
+                        </>
+                    )}
+                    
+                    <OrderDetailsModal order={selectedOrderDetails} onClose={() => setSelectedOrderDetails(null)} />
+                    {isAddingUser && (
+                        <AddUserModal 
+                            onClose={() => setIsAddingUser(false)} 
+                            onUserAdded={handleUserAdded}
+                            setMessage={setMessage}
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        function OrdersApp() {
+            return (
+                <div>
+                    <Navbar />
+                    <main>
+                        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                           <OrdersPage />
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<OrdersApp />);
+    </script>
+</body>
+</html>
+
