@@ -4,7 +4,7 @@ import Category from '../models/Categories.js';
 
 const router = express.Router();
 
-
+//GET ALL CATEGORIES
 router.get('/',async(req,res)=>{
     try{
         const products = await Category.find();
@@ -15,7 +15,7 @@ router.get('/',async(req,res)=>{
 });
 
 
-
+//CREATE CATEGORY
 router.post('/',async(req,res)=>{
 
     const {name,description} = req.body;

@@ -1,17 +1,14 @@
 import express from 'express';
-import Order from '../models/Orders.js'; // We need the Order model here
+import Order from '../models/Orders.js'; 
 import Users from '../models/Users.js';
 const router = express.Router();
 
 // GET A USER'S ORDER HISTORY
-// The path here is '/:id/orders'
-// It will be combined with '/api/users' from server.js to make the final URL:
 // GET /api/users/:id/orders
 router.get('/:id/orders', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find all orders that match the user_id from the URL
     const orders = await Order.find({ user_id: id });
 
     if (!orders || orders.length === 0) {
@@ -59,10 +56,6 @@ router.post('/', async (req, res) => {
         if (existingUser) {
             return res.status(409).json({ message: 'A user with that email already exists.' });
         }
-
-        // 3. Hash the password securely
-        // const salt = await bcrypt.genSalt(10);
-        // const hashedPassword = await bcrypt.hash(password, salt);
 
         // 4. Create a new user instance
         const newUser = new Users({

@@ -3,7 +3,7 @@ import Product  from '../models/Products.js';
 
 const router = express.Router();
 
-
+//GET PRODUCTS
 router.get('/',async(req,res)=>{
     try{
         const products = await Product.find().populate('category');
@@ -13,41 +13,32 @@ router.get('/',async(req,res)=>{
     }
 });
 
-router.post('/', async (req, res) => {
-    try {
-        const { name, password, email } = req.body;
-
-        // Basic validation
-        if (!name || !password || !email) {
-            return res.status(400).json({ message: 'Please provide a name, email, and password.' });
-        }
-
-        // Check if a user with the given email already exists
-        const existingUser = await User.findOne({ email });
-        
-        if (existingUser) {
-            console.log('Returning existing user:', existingUser.name);
-            return res.status(200).json(existingUser);
-        }
-
-        // If user does not exist, proceed to create a new one
-        const encodedPassword = Buffer.from(password).toString('base64');
-
-        const newUser = await User.create({
-            name,
-            email,
-            password: encodedPassword
-        });
-
-        console.log('New user created:', newUser);
-        res.status(201).json(newUser);
-
-    } catch (err) {
-        console.error("Error creating user:", err);
-        res.status(500).json({ message: "An error occurred on the server." });
+// ADD PRODUCTS
+router.post("/", async (req, res) => {
+  try {
+    // If array → insertMany, else save one
+    if (Array.isArray(req.body)) {
+      const products = await Product.insertMany(req.body);
+      res.status(201).json(products);
+    } else {
+      const { name, sku, price, stock_quantity, category } = req.body;
+      const product = new Product({
+        name,
+        sku,
+        price,
+        stock_quantity,
+        category,
+      });
+      const newProduct = await product.save();
+      res.status(201).json(newProduct);
     }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
+
+//UPDATE PRODUCT
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -102,7 +93,8 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-// --- GET /api/products - List all products with stock levels ---
+
+// --- GET /api/products - List all products with stock levels 
 router.get('/low-stock',async(req,res)=>{
     try{
         const lowstockproducts = await Product.find({stock_quantity:{$lt:10}}).populate('category');
@@ -112,8 +104,5 @@ router.get('/low-stock',async(req,res)=>{
         res.status(500).json({message:err.message});
     }
 });
-
-
-
 
 export default router;

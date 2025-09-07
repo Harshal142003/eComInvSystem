@@ -24,6 +24,7 @@
   app.use('/api/category',categoryRoutes);
   app.use('/api/orders',orderRoutes);
   app.use('/api/users',userRoutes);
+  
   // Connect to MongoDB
   mongoose
     .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })

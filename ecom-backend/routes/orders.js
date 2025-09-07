@@ -130,31 +130,5 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// GET USER'S ORDER HISTORY
-router.get('/users/:id/orders', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const orders = await Order.find({ user_id: id });
-
-    if (!orders || orders.length === 0) {
-      return res.status(404).json({ message: "No orders found for this user." });
-    }
-
-    const response = orders.map(order => ({
-      id: order._id,
-      user_id: order.user_id,
-      total: order.total,
-      status: order.status,
-      created_at: order.createdAt
-    }));
-
-    res.status(200).json(response);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Something went wrong" });
-  }
-});
-
 
 export default router;
