@@ -41,13 +41,7 @@ This will create a node_modules folder inside ecom-backend and install express, 
 Create the Environment File:
 Create a new file named .env in the ecom-backend directory and add the following content. This file stores your secret credentials and should not be committed to Git.
 
-# .env File
 
-# --- Server Configuration ---
-PORT=5000
-
-# --- Database Configuration ---
-MONGO_URI="mongodb+srv://harshal1438:Harshal1423@ecominvsys.2hgsxtw.mongodb.net/?retryWrites=true&w=majority&appName=eComInvSys"
 
 Step 3: Frontend Configuration
 The frontend uses serve, a simple package for serving static files.
