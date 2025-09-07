@@ -79,10 +79,8 @@ You should see a message confirming the server is running, typically at http://l
 
 You can now open http://localhost:3000 in your web browser to use the application.
 
-6. Troubleshooting
+5. Troubleshooting
 PowerShell Execution Policy (Windows): If you are unable to run npm scripts in the VS Code terminal, open PowerShell as an administrator and run the following command:
 
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-
-Database Connection Fails: Ensure your current IP address is whitelisted in your MongoDB Atlas cluster's Network Access settings.
 
